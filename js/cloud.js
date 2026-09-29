@@ -16,6 +16,7 @@ const cloud = {
   lastJSON: null,    // último contenido subido/bajado (evita subidas repetidas)
   lastSync: null, status: 'local',
   pushing: false, timer: null, loggingOut: false, recoveryUser: null,
+  localOnly: false,  // perfil sin conexión: nunca se sube ni se baja nada
 };
 const SYNC_KEY = uid => `bruno-sync:${uid}`;
 const PUSH_DELAY = 1500;
@@ -114,7 +115,7 @@ async function syncFromRemote() {
 
 async function pushNow() {
   clearTimeout(cloud.timer);
-  if (!cloud.user || cloud.pushing) return;
+  if (!cloud.user || cloud.localOnly || cloud.pushing) return;
   cloud.pushing = true;
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -142,7 +143,7 @@ async function pushNow() {
 }
 
 function schedulePush(delay = PUSH_DELAY) {
-  if (!cloud.user) return;
+  if (!cloud.user || cloud.localOnly) return;
   cloud.dirty = true;
   saveSyncMeta();
   clearTimeout(cloud.timer);
@@ -151,7 +152,7 @@ function schedulePush(delay = PUSH_DELAY) {
 afterSave.push(() => schedulePush());
 
 async function pull() {
-  if (!cloud.user || cloud.pushing) return;
+  if (!cloud.user || cloud.localOnly || cloud.pushing) return;
   try {
     await syncFromRemote();
     cloud.lastSync = new Date().toISOString();
@@ -170,6 +171,7 @@ function setSyncStatus(s) {
   renderAccount();
 }
 function syncStatusText() {
+  if (cloud.localOnly) return 'Perfil sin conexión: los datos se guardan solo en este dispositivo.';
   if (cloud.status === 'syncing') return 'Sincronizando…';
   if (cloud.status === 'offline') return 'Sin conexión: tus cambios quedan en este dispositivo y se suben al volver la conexión.';
   if (cloud.lastSync) return `Sincronizado · ${new Date(cloud.lastSync).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
@@ -184,7 +186,7 @@ function renderAccount() {
       <div class="grow"><strong>${esc(cloud.user.email || '')}</strong><span class="muted small sync-${cloud.status}">${syncStatusText()}</span></div>
       <button type="button" class="btn btn-ghost btn-sm" id="logoutBtn">Cerrar sesión</button>
     </div>`;
-  $('#accountBadge').textContent = cloud.status === 'offline' ? 'Sin conexión' : '';
+  $('#accountBadge').textContent = cloud.localOnly || cloud.status === 'offline' ? 'Sin conexión' : '';
 }
 
 /* ---------- Pantalla de ingreso ---------- */
@@ -337,7 +339,18 @@ async function enterAs(user) {
   location.reload();
 }
 
+/** Entra con el perfil sin conexión, sin pasar por Supabase. */
+function enterOffline() {
+  try { localStorage.setItem(USER_KEY, OFFLINE_ID); } catch (e) {
+    setAuthMsg('Tu navegador no permite guardar datos (¿modo incógnito o cookies bloqueadas?). Probá en una ventana normal.', true);
+    return;
+  }
+  location.replace(location.pathname + '#panel');
+  location.reload();
+}
+
 async function logout() {
+  if (cloud.localOnly) { forgetUser({ keepData: true }); location.replace(location.pathname); return; }
   if (cloud.dirty) await pushNow();
   if (cloud.dirty && !confirm('Hay cambios que todavía no se subieron (sin conexión). Si cerrás sesión ahora se pierden. ¿Cerrar igual?')) return;
   cloud.loggingOut = true;
@@ -407,8 +420,16 @@ async function initCloud() {
   $('#resendBtn').addEventListener('click', onResend);
   $('#authForm').addEventListener('submit', onAuthSubmit);
   $('#forgotBtn').addEventListener('click', onForgot);
+  $('#offlineBtn').addEventListener('click', enterOffline);
   $('#authTabs').addEventListener('click', e => { const b = e.target.closest('[data-auth]'); if (b) setAuthMode(b.dataset.auth); });
   $('#dataDialog').addEventListener('click', e => { if (e.target.id === 'logoutBtn') logout(); });
+
+  if (cachedUserId === OFFLINE_ID) {
+    cloud.localOnly = true;
+    cloud.user = { id: OFFLINE_ID, email: 'Perfil sin conexión' };
+    setSyncStatus('local');
+    return;
+  }
 
   if (!window.supabase?.createClient) {
     // Sin conexión y sin la librería: si ya había sesión, se usa la copia local.

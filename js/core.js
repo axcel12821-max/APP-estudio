@@ -71,6 +71,7 @@ const ICONS = {
 const CLOUD = typeof BRUNO_CONFIG !== 'undefined' && !!(BRUNO_CONFIG.supabaseUrl && BRUNO_CONFIG.supabaseAnonKey);
 const LOCAL_KEY = 'estudio-app';
 const USER_KEY = 'bruno-user'; // id del último usuario que inició sesión en este navegador
+const OFFLINE_ID = 'offline-local'; // perfil sin cuenta: no usa Supabase, datos solo en este navegador
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const cachedUserId = CLOUD ? lsGet(USER_KEY) : null;
 const STORAGE_KEY = cachedUserId ? `${LOCAL_KEY}:${cachedUserId}` : LOCAL_KEY;
