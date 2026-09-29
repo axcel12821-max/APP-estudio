@@ -335,7 +335,7 @@ async function enterAs(user) {
     return;
   }
   try { sessionStorage.setItem('bruno-just-logged', user.id); } catch (e) {}
-  location.replace(location.pathname + '#panel');
+  location.replace(location.pathname + '#calendario');
   location.reload();
 }
 
@@ -345,7 +345,7 @@ function enterOffline() {
     setAuthMsg('Tu navegador no permite guardar datos (¿modo incógnito o cookies bloqueadas?). Probá en una ventana normal.', true);
     return;
   }
-  location.replace(location.pathname + '#panel');
+  location.replace(location.pathname + '#calendario');
   location.reload();
 }
 

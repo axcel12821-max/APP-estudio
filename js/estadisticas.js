@@ -20,20 +20,20 @@ function statsRange() {
   return { range: monthRange(m), label: capitalize(m.toLocaleDateString('es', { month: 'long', year: 'numeric' })), start: m };
 }
 
-/** Minutos completados por materia en un rango, de mayor a menor. */
+/** Minutos estudiados por materia en un rango (incluye sesiones parciales), de mayor a menor. */
 function minutesBySubject(range) {
   const map = {};
-  completedSessions().filter(x => inRange(x.date, range)).forEach(x => {
+  state.sessions.filter(x => inRange(x.date, range)).forEach(x => {
     const m = map[x.subjectId] || (map[x.subjectId] = { minutes: 0, pomodoros: 0 });
-    m.minutes += x.plannedMin;
-    m.pomodoros++;
+    m.minutes += sessionMinutes(x);
+    if (x.status === 'completed') m.pomodoros++;
   });
   return Object.entries(map).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.minutes - a.minutes);
 }
 
 /** Barras horizontales por materia, rotuladas con nombre y valor (identidad nunca solo por color). */
 function subjectBarsHTML(rows, showShare) {
-  if (!rows.length) return '<p class="empty">Sin sesiones completadas en este período.</p>';
+  if (!rows.length) return '<p class="empty">Sin tiempo de estudio en este período.</p>';
   const max = rows[0].minutes;
   const total = rows.reduce((a, r) => a + r.minutes, 0);
   return `<div class="hbars">${rows.map(r => `
@@ -47,7 +47,7 @@ function subjectBarsHTML(rows, showShare) {
 /** Columnas verticales de una sola serie. `cols`: [{ label, minutes, tip, highlight }] */
 function columnsHTML(cols, { dense = false } = {}) {
   const max = Math.max(...cols.map(c => c.minutes));
-  if (!max) return '<p class="empty">Sin sesiones completadas en este período.</p>';
+  if (!max) return '<p class="empty">Sin tiempo de estudio en este período.</p>';
   const peak = cols.findIndex(c => c.minutes === max);
   return `<div class="vbars ${dense ? 'dense' : ''}">${cols.map((c, i) => `
     <div class="vbar-col ${c.highlight ? 'hl' : ''}" ${tipAttr(`<strong>${esc(c.tip)}</strong><br>${c.minutes ? fmtDur(c.minutes) : 'Sin estudio'}`)}>
@@ -59,7 +59,7 @@ function columnsHTML(cols, { dense = false } = {}) {
 
 function dailyMinutes(range) {
   const map = {};
-  completedSessions().filter(x => inRange(x.date, range)).forEach(x => { map[x.date] = (map[x.date] || 0) + x.plannedMin; });
+  state.sessions.filter(x => inRange(x.date, range)).forEach(x => { map[x.date] = (map[x.date] || 0) + sessionMinutes(x); });
   return map;
 }
 
@@ -79,7 +79,7 @@ function renderStats() {
     [fmtDur(tot.minutes), p === 'day' ? 'Tiempo estudiado' : 'Horas estudiadas'],
     [tot.pomodoros, 'Pomodoros completados'],
     [tasksDone, 'Tareas completadas'],
-    p === 'day' ? [incomplete, 'Sesiones incompletas'] : [bySub.length, 'Materias estudiadas'],
+    p === 'day' ? [incomplete, 'Sesiones parciales'] : [bySub.length, 'Materias estudiadas'],
   ];
   $('#statsKpis').innerHTML = kpis.map(([n, l]) => `<div class="stat"><span class="stat-num">${n}</span><span class="stat-label">${l}</span></div>`).join('');
 
@@ -122,7 +122,7 @@ renderers.estadisticas = renderStats;
 function renderWeekdayChart() {
   const from = todayISO(addDays(startOfWeek(), -56));
   const totals = [0, 0, 0, 0, 0, 0, 0];
-  completedSessions().filter(x => x.date >= from).forEach(x => { totals[parseISO(x.date).getDay()] += x.plannedMin; });
+  state.sessions.filter(x => x.date >= from).forEach(x => { totals[parseISO(x.date).getDay()] += sessionMinutes(x); });
   const best = totals.indexOf(Math.max(...totals));
   $('#statsWeekdayNote').textContent = Math.max(...totals) ? `Tu mejor día: ${DAYS[best].toLowerCase()}` : '';
   $('#statsWeekday').innerHTML = columnsHTML(DAY_ORDER.map(d => ({

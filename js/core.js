@@ -36,11 +36,15 @@ function monthRange(d = new Date()) {
 const inRange = (iso, [a, b]) => iso >= a && iso < b;
 
 /** 135 → "2h 15m", 40 → "40m" */
+/** Duración legible con segundos: 45s, 2m 35s, 1h 5m, 1h 5m 20s. */
 function fmtDur(min) {
-  min = Math.round(min);
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
+  const total = Math.round(min * 60);
+  const h = Math.floor(total / 3600), m = Math.floor(total % 3600 / 60), s = total % 60;
+  const parts = [];
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}m`);
+  if (s) parts.push(`${s}s`);
+  return parts.join(' ') || '0m';
 }
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -60,6 +64,7 @@ const ICONS = {
   x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
   bell: '<svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   play: '<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4Z"/></svg>',
   chevL: '<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
   chevR: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
@@ -86,7 +91,7 @@ const defaults = {
   version: DATA_VERSION,
   career: '', institution: '',
   subjects: [], tasks: [],
-  sessions: [],          // sesiones Pomodoro (completadas e incompletas)
+  sessions: [],          // sesiones Pomodoro (completadas y parciales; ambas suman tiempo)
   reminders: [],         // recordatorios recurrentes
   goals: DEFAULT_GOALS,
   achieved: {},          // objetivos ya celebrados: { clave: true }
@@ -161,15 +166,20 @@ const subjectName = id => subjectById(id)?.name || 'General';
 
 /* ============ Datos derivados de sesiones ============ */
 const completedSessions = () => state.sessions.filter(x => x.status === 'completed');
+/**
+ * Minutos realmente estudiados en una sesión. El tiempo cuenta aunque el bloque no se
+ * termine: una sesión cortada a la mitad suma lo que duró el enfoque.
+ */
+const sessionMinutes = x => x.status === 'completed' ? x.plannedMin : (x.focusMin || 0);
 
-/** Suma minutos y pomodoros completados en un rango de fechas (opcionalmente por materia). */
+/** Suma minutos estudiados (toda sesión) y pomodoros completados en un rango (opcionalmente por materia). */
 function studyTotals(range, subjectId) {
   let minutes = 0, pomodoros = 0;
-  completedSessions().forEach(x => {
+  state.sessions.forEach(x => {
     if (range && !inRange(x.date, range)) return;
     if (subjectId !== undefined && x.subjectId !== subjectId) return;
-    minutes += x.plannedMin;
-    pomodoros++;
+    minutes += sessionMinutes(x);
+    if (x.status === 'completed') pomodoros++;
   });
   return { minutes, pomodoros };
 }
@@ -214,7 +224,7 @@ function setTaskStatus(t, status) {
 const renderers = {};
 const alwaysRender = [];
 function currentView() {
-  return $('.view.active')?.id.replace('view-', '') || 'panel';
+  return $('.view.active')?.id.replace('view-', '') || 'calendario';
 }
 function renderAll() {
   alwaysRender.forEach(fn => fn());

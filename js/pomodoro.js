@@ -1,9 +1,11 @@
 'use strict';
 /* ============ Pomodoro ============
    Solo los bloques de enfoque generan sesiones. Una sesión se registra:
-   - "completed" cuando el temporizador llega a 0 (cuenta el tiempo planificado completo);
-   - "incomplete" si se reinicia, salta o cambia de modo antes de terminar
-     (guarda los minutos reales de enfoque, pero no suman a las estadísticas). */
+   - "completed" cuando el temporizador llega a 0 (cuenta el tiempo planificado completo
+     y suma un pomodoro);
+   - "incomplete" (parcial) si se reinicia, salta o cambia de modo antes de terminar:
+     guarda los minutos reales de enfoque, que suman al tiempo de estudio igual que los
+     completos, pero no cuentan como pomodoro. */
 
 const APP_TITLE = 'Focusly';
 const MODE_LABEL = { work: 'Enfoque', short: 'Descanso', long: 'Descanso largo' };
@@ -101,7 +103,8 @@ function finishSession(status, endTime = Date.now()) {
     start: s.start,
     end: new Date(endTime).toISOString(),
     plannedMin: s.plannedMin,
-    focusMin: status === 'completed' ? s.plannedMin : Math.round(s.focusMs / 6000) / 10,
+    // Minutos con precisión de segundos (p. ej. 2m 35s → 2.5833)
+    focusMin: status === 'completed' ? s.plannedMin : Math.round(s.focusMs / 1000) / 60,
     subjectId: s.subjectId,
     topic: s.topic,
     planItemId: s.planItemId,
@@ -111,7 +114,8 @@ function finishSession(status, endTime = Date.now()) {
 }
 
 function setMode(mode) {
-  if (pomo.session) finishSession('incomplete');
+  const cut = !!pomo.session;
+  if (cut) finishSession('incomplete');
   pomo.running = false;
   clearInterval(pomo.timer);
   pomo.mode = mode;
@@ -120,6 +124,7 @@ function setMode(mode) {
   persistRun();
   renderPomo();
   renderAll();
+  if (cut) checkGoals(); // el tiempo parcial también puede cumplir el objetivo de minutos
 }
 
 function complete({ restored = false } = {}) {
@@ -145,13 +150,27 @@ function complete({ restored = false } = {}) {
   if (wasWork) checkGoals();
 }
 
+/** Minutos de enfoque acumulados en la sesión en curso (incluye el tramo que está corriendo). */
+function currentFocusMs() {
+  const s = pomo.session;
+  if (!s) return 0;
+  return s.focusMs + (s.runStartedAt ? Date.now() - s.runStartedAt : 0);
+}
+/** Aviso al cortar una sesión: el tiempo ya estudiado se guarda igual. */
+function confirmCut(action) {
+  if (!pomo.session) return true;
+  const ms = currentFocusMs();
+  if (ms < MIN_RECORD_MS) return confirm(`Llevás menos de 30 segundos: esta sesión no se va a guardar. ¿${action}?`);
+  return confirm(`Se guardan ${fmtDur(ms / 60000)} de estudio en tus estadísticas (como sesión parcial). ¿${action}?`);
+}
+
 $('#pomoToggle').addEventListener('click', () => (pomo.running ? pausePomo() : startPomo()));
 $('#pomoReset').addEventListener('click', () => {
-  if (pomo.session && !confirm('La sesión en curso se registrará como incompleta. ¿Reiniciar?')) return;
+  if (!confirmCut('Reiniciar')) return;
   setMode(pomo.mode);
 });
 $('#pomoSkip').addEventListener('click', () => {
-  if (pomo.session && !confirm('La sesión en curso se registrará como incompleta. ¿Saltar?')) return;
+  if (!confirmCut('Saltar')) return;
   const next = pomo.mode === 'work' ? ((pomo.cycleCount + 1) % state.pomo.cycles === 0 ? 'long' : 'short') : 'work';
   if (pomo.mode === 'work') pomo.cycleCount++;
   setMode(next);
@@ -159,7 +178,7 @@ $('#pomoSkip').addEventListener('click', () => {
 $('#pomoModes').addEventListener('click', e => {
   const b = e.target.closest('[data-mode]');
   if (!b || b.dataset.mode === pomo.mode) return;
-  if ((pomo.running || pomo.session) && !confirm('Hay un temporizador en curso. Si cambiás de modo, la sesión quedará incompleta. ¿Continuar?')) return;
+  if (pomo.session ? !confirmCut('Cambiar de modo') : pomo.running && !confirm('Hay un temporizador en curso. ¿Cambiar de modo?')) return;
   setMode(b.dataset.mode);
 });
 
@@ -211,7 +230,7 @@ function renderPomoStats() {
   $('#pomoCountToday').textContent = tot.pomodoros;
   $('#pomoMinutesToday').textContent = fmtDur(tot.minutes);
   const bySub = {};
-  completedSessions().filter(x => x.date === today).forEach(x => { bySub[x.subjectId] = (bySub[x.subjectId] || 0) + x.plannedMin; });
+  state.sessions.filter(x => x.date === today).forEach(x => { bySub[x.subjectId] = (bySub[x.subjectId] || 0) + sessionMinutes(x); });
   $('#pomoBreakdown').innerHTML = Object.entries(bySub).sort((a, b) => b[1] - a[1]).map(([id, min]) =>
     `<li><span><span class="dot" style="background:${subjectColor(id)}"></span>${esc(subjectName(id))}</span><span>${fmtDur(min)}</span></li>`).join('');
 
@@ -225,7 +244,7 @@ function sessionRowHTML(x) {
   return `<li class="session-row">
     <span class="dot" style="background:${subjectColor(x.subjectId)}"></span>
     <span class="grow"><span>${esc(subjectName(x.subjectId))}${x.topic ? ` · ${esc(x.topic)}` : ''}</span><span class="muted small">${time} · ${ok ? fmtDur(x.plannedMin) : `${fmtDur(x.focusMin)} de ${fmtDur(x.plannedMin)}`}</span></span>
-    <span class="pill ${ok ? 'live' : ''}">${ok ? 'Completada' : 'Incompleta'}</span>
+    <span class="pill ${ok ? 'live' : ''}" ${ok ? '' : 'title="Suma al tiempo de estudio, pero no cuenta como pomodoro"'}>${ok ? 'Completada' : 'Parcial'}</span>
   </li>`;
 }
 
