@@ -93,6 +93,7 @@ const defaults = {
   subjects: [], tasks: [],
   sessions: [],          // sesiones Pomodoro (completadas y parciales; ambas suman tiempo)
   reminders: [],         // recordatorios recurrentes
+  teamTasks: [],         // tareas conjuntas (Equipos)
   goals: DEFAULT_GOALS,
   achieved: {},          // objetivos ya celebrados: { clave: true }
   pomo: { ...DEFAULT_POMO },
@@ -121,6 +122,7 @@ function migrate(s) {
   };
   s.sessions = s.sessions || [];
   s.reminders = s.reminders || [];
+  s.teamTasks = s.teamTasks || [];
   s.achieved = s.achieved || {};
 
   s.subjects.forEach(sub => {

@@ -23,7 +23,8 @@ $('#themeToggle').addEventListener('click', () => {
 mq.addEventListener('change', applyTheme);
 
 /* ============ Navegación ============ */
-const VIEWS = ['panel', 'calendario', 'materias', 'tareas', 'examenes', 'pomodoro', 'estadisticas', 'objetivos', 'recordatorios'];
+// Secciones tomadas del HTML (cada <section class="view" id="view-…">): agregar una no requiere tocar esta lista
+const VIEWS = $$('.view').map(v => v.id.replace('view-', ''));
 function route() {
   const view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'calendario'; // inicio: el día de hoy
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));

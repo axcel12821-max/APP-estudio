@@ -20,7 +20,7 @@ const cloud = {
 };
 const SYNC_KEY = uid => `bruno-sync:${uid}`;
 const PUSH_DELAY = 1500;
-const COLLECTIONS = ['subjects', 'tasks', 'sessions', 'reminders'];
+const COLLECTIONS = ['subjects', 'tasks', 'sessions', 'reminders', 'teamTasks'];
 
 /** Lo que se sube: todo menos el temporizador en curso (es propio de cada dispositivo). */
 function remotePayload(s = state) {

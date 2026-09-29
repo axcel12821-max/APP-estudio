@@ -2,7 +2,7 @@
 // - permite mostrar notificaciones (necesario en Android) y enfoca la app al tocarlas;
 // - guarda una copia de la app para abrirla sin conexiÃ³n. Usa "red primero":
 //   siempre intenta la versiÃ³n nueva y solo cae a la copia si no hay internet.
-const CACHE = 'focusly-v2';
+const CACHE = 'focusly-v3';
 const CDN = 'https://cdn.jsdelivr.net';
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -20,7 +20,8 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin && url.origin !== CDN) return;
   e.respondWith((async () => {
     try {
-      const res = await fetch(req);
+      // no-cache: siempre pregunta al servidor si el archivo cambió (evita usar un JS viejo tras una actualización)
+      const res = await fetch(req, url.origin === self.location.origin ? { cache: 'no-cache' } : undefined);
       if (res.ok) {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));

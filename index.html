@@ -95,6 +95,10 @@
           <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
           <span>Recordatorios</span>
         </a>
+        <a href="#equipos" data-view="equipos">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg>
+          <span>Equipos</span>
+        </a>
       </nav>
       <button class="more-btn" id="moreBtn" type="button" aria-label="Más secciones">
         <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
@@ -128,6 +132,7 @@
         <a href="#estadisticas" data-view="estadisticas"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Estadísticas</span></a>
         <a href="#objetivos" data-view="objetivos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Objetivos</span></a>
         <a href="#recordatorios" data-view="recordatorios"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span>Recordatorios</span></a>
+        <a href="#equipos" data-view="equipos"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg><span>Equipos</span></a>
       </nav>
       <div class="more-actions">
         <button type="button" data-proxy="#themeToggle"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg><span class="more-theme-label">Cambiar tema</span></button>
@@ -510,6 +515,33 @@
           <ul class="upcoming-list" id="taskReminderList"></ul>
         </div>
       </section>
+
+      <!-- EQUIPOS (en construcción: trabajos en equipo) -->
+      <section class="view" id="view-equipos">
+        <header class="view-head">
+          <div>
+            <h1>Equipos</h1>
+            <p class="sub">Trabajos en equipo con tus compañeros. Próximamente.</p>
+          </div>
+        </header>
+        <div class="equipos">
+          <button type="button" class="card team-box" id="teamCreate">
+            <svg class="team-icon" viewBox="0 0 28 24" aria-hidden="true"><path d="M5 9v6M2 12h6"/><g transform="translate(6 0)"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></g></svg>
+            <span class="team-title">Crear una tarea conjunta</span>
+            <span class="team-note">Armá un trabajo en equipo y sumá a tus compañeros.</span>
+          </button>
+          <button type="button" class="card team-box" id="teamActive">
+            <span class="team-icon-wrap"><span class="team-live" aria-hidden="true"></span><svg class="team-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg></span>
+            <span class="team-title">Tareas conjuntas activas</span>
+            <span class="team-note" id="teamActiveNote">Todavía no tenés tareas conjuntas activas.</span>
+          </button>
+          <button type="button" class="card team-box" id="teamArchived">
+            <svg class="team-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+            <span class="team-title">Archivados</span>
+            <span class="team-note">No hay tareas conjuntas archivadas.</span>
+          </button>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -607,6 +639,35 @@
       <div class="dialog-actions">
         <button type="button" class="btn btn-ghost" data-close>Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Diálogo tarea conjunta (Equipos) -->
+  <dialog id="teamDialog">
+    <form method="dialog" id="teamForm" class="dialog-body" novalidate>
+      <h2>Nueva tarea conjunta</h2>
+      <label class="field">
+        <span>Nombre de la tarea</span>
+        <input type="text" name="name" required maxlength="80" placeholder="Ej: TP final de Física">
+      </label>
+      <label class="field">
+        <span>Fecha límite</span>
+        <input type="date" name="date" required>
+      </label>
+      <div class="field">
+        <span>Agregar un participante</span>
+        <div id="teamMembers" class="member-list"></div>
+        <span class="muted small">Solo se suman compañeros con cuenta en Focusly. Por privacidad, no se muestra si un email está registrado.</span>
+      </div>
+      <div class="field">
+        <span>Color</span>
+        <div class="swatches" id="teamSwatches"></div>
+      </div>
+      <p class="form-error" id="teamError"></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
       </div>
     </form>
   </dialog>
@@ -742,6 +803,7 @@
   <script src="js/estadisticas.js"></script>
   <script src="js/calendario.js"></script>
   <script src="js/panel.js"></script>
+  <script src="js/equipos.js"></script>
   <script src="js/cloud.js"></script>
   <script src="js/main.js"></script>
 </body>

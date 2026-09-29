@@ -148,6 +148,32 @@ a { color: inherit; text-decoration: none; }
   padding: 20px;
   min-width: 0;
 }
+/* Equipos: crear, activas y archivados como tres cuadrados alineados */
+.equipos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.equipos > .card { aspect-ratio: 1; min-width: 0; }
+/* Ícono grande al centro; el nombre de la sección debajo, más chico y apagado */
+.team-box { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
+/* Las cajas son botones: mismo aspecto de tarjeta, con respuesta al pasar el mouse */
+button.team-box { font: inherit; color: var(--text); cursor: pointer; width: 100%; transition: border-color .15s, background .15s, transform .15s; }
+button.team-box:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: color-mix(in srgb, var(--accent) 5%, var(--surface)); transform: translateY(-2px); }
+button.team-box:active { transform: translateY(0); }
+button.team-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.team-title, .team-note { display: block; }
+/* Participantes del formulario de tarea conjunta */
+.member-list { display: flex; flex-direction: column; gap: 8px; }
+.member-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.member-row .icon-plain.add { color: var(--accent); font-size: 20px; line-height: 1; width: 34px; height: 34px; }
+.team-icon { width: 64px; height: 64px; stroke-width: 1.4; color: var(--text); margin-bottom: 8px; }
+.team-icon-wrap { display: flex; align-items: center; gap: 12px; }
+.team-icon-wrap .team-icon { margin-bottom: 0; }
+.team-icon-wrap { margin-bottom: 8px; }
+.team-title { font-size: 14px; font-weight: 500; color: var(--muted); font-family: inherit; letter-spacing: 0; }
+.team-note { font-size: 12.5px; line-height: 1.4; min-height: 2.8em; color: var(--muted); opacity: .75; max-width: 26ch; margin: 0; } /* 2 líneas fijas: los íconos quedan a la misma altura */
+.team-live { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
+@media (max-width: 900px) {
+  .equipos { grid-template-columns: 1fr; }
+  .equipos > .card { aspect-ratio: auto; min-height: 180px; }
+}
 .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -239,7 +265,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 /* Forms */
 .field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .field > span { font-size: 13px; font-weight: 500; color: var(--muted); }
-input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="email"], input[type="password"], input[type="datetime-local"], select, textarea {
   width: 100%;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 9px 12px; outline: none; transition: border-color .15s;
