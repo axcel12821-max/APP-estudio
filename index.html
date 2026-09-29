@@ -538,7 +538,7 @@
           <button type="button" class="card team-box" id="teamArchived">
             <svg class="team-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
             <span class="team-title">Archivados</span>
-            <span class="team-note">No hay tareas conjuntas archivadas.</span>
+            <span class="team-note" id="teamArchivedNote">No hay tareas conjuntas archivadas.</span>
           </button>
         </div>
       </section>
@@ -670,6 +670,17 @@
         <button type="submit" class="btn btn-primary">Crear</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Diálogo lista de tareas conjuntas (activas / archivadas) -->
+  <dialog id="teamListDialog" class="wide">
+    <div class="dialog-body">
+      <div class="team-list-head">
+        <h2 id="teamListTitle">Tareas conjuntas activas</h2>
+        <button type="button" class="icon-plain" data-close aria-label="Cerrar"></button>
+      </div>
+      <ul class="team-list" id="teamList"></ul>
+    </div>
   </dialog>
 
   <!-- Diálogo plan de estudio -->

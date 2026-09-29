@@ -98,13 +98,88 @@ teamForm.addEventListener('submit', e => {
   toast('Tarea conjunta creada', emails.length ? `Se invitó a ${emails.length} participante${emails.length > 1 ? 's' : ''}.` : name, 'success');
 });
 
+/* ---- Listas: activas y archivadas ---- */
+const archivedTeamTasks = () => state.teamTasks.filter(t => t.status === 'archived');
+const ARCHIVE_ICON = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>';
+const RESTORE_ICON = '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
+const TRASH_ICON = '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+let teamListMode = 'active'; // 'active' | 'archived'
+
+/** "Vence hoy", "Vence en 3 días", "Venció hace 2 días" (+ fecha corta). */
+function teamDueHTML(t) {
+  const d = daysUntil(t.date);
+  const when = d === 0 ? 'Vence hoy' : d === 1 ? 'Vence mañana' : d > 1 ? `Vence en ${d} días` : `Venció hace ${-d} día${d === -1 ? '' : 's'}`;
+  const cls = d < 0 ? 'urgent' : d <= 2 ? 'soon' : '';
+  return `<span class="pill ${cls}">${when}</span><span class="muted small">${shortDate(t.date)}</span>`;
+}
+
+function teamRowHTML(t) {
+  const members = t.members || [];
+  const chips = members.length
+    ? members.map(m => `<span class="chip">${esc(m.email)}</span>`).join('')
+    : '<span class="muted small">Sin participantes</span>';
+  const actions = teamListMode === 'active'
+    ? `<button type="button" class="icon-plain" data-act="archive" aria-label="Archivar" title="Archivar">${ARCHIVE_ICON}</button>`
+    : `<button type="button" class="icon-plain" data-act="restore" aria-label="Restaurar" title="Restaurar">${RESTORE_ICON}</button>
+       <button type="button" class="icon-plain danger" data-act="delete" aria-label="Eliminar" title="Eliminar">${TRASH_ICON}</button>`;
+  return `<li class="team-row" data-id="${t.id}" style="--c:${t.color}">
+    <div class="grow">
+      <strong>${esc(t.name)}</strong>
+      <div class="team-row-due">${teamDueHTML(t)}</div>
+      <div class="team-row-members">${chips}</div>
+    </div>
+    <div class="team-row-actions">${actions}</div>
+  </li>`;
+}
+
+function renderTeamList() {
+  const active = teamListMode === 'active';
+  $('#teamListTitle').textContent = active ? 'Tareas conjuntas activas' : 'Archivados';
+  const list = (active ? activeTeamTasks() : archivedTeamTasks())
+    .sort((a, b) => active ? a.date.localeCompare(b.date) : (b.archivedAt || '').localeCompare(a.archivedAt || ''));
+  $('#teamList').innerHTML = list.length ? list.map(teamRowHTML).join('')
+    : active
+      ? '<li class="empty">Todavía no tenés tareas conjuntas activas.<br><button type="button" class="btn btn-primary btn-sm" data-act="create">Crear una tarea conjunta</button></li>'
+      : '<li class="empty">No hay tareas conjuntas archivadas.</li>';
+}
+
+function openTeamList(mode) {
+  teamListMode = mode;
+  renderTeamList();
+  $('#teamListDialog').showModal();
+}
+
+$('#teamList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  if (b.dataset.act === 'create') { $('#teamListDialog').close(); openTeamDialog(); return; }
+  const t = state.teamTasks.find(x => x.id === b.closest('[data-id]').dataset.id);
+  if (!t) return;
+  if (b.dataset.act === 'archive') {
+    t.status = 'archived';
+    t.archivedAt = new Date().toISOString();
+    toast('Tarea archivada', t.name);
+  } else if (b.dataset.act === 'restore') {
+    t.status = 'active';
+    delete t.archivedAt;
+    toast('Tarea restaurada', t.name, 'success');
+  } else if (b.dataset.act === 'delete') {
+    if (!confirm(`¿Eliminar "${t.name}" para siempre? No se puede deshacer.`)) return;
+    state.teamTasks.splice(state.teamTasks.indexOf(t), 1);
+  }
+  save(); renderAll(); renderTeamList();
+});
+
 /* ---- Vista ---- */
 function renderEquipos() {
   const n = activeTeamTasks().length;
   $('#teamActiveNote').textContent = n ? `${n} tarea${n > 1 ? 's' : ''} conjunta${n > 1 ? 's' : ''} en curso.` : 'Todavía no tenés tareas conjuntas activas.';
+  const a = archivedTeamTasks().length;
+  $('#teamArchivedNote').textContent = a ? `${a} tarea${a > 1 ? 's' : ''} archivada${a > 1 ? 's' : ''}.` : 'No hay tareas conjuntas archivadas.';
 }
 renderers.equipos = renderEquipos;
 
+$('#teamListDialog [data-close]').innerHTML = ICONS.x;
 $('#teamCreate').addEventListener('click', openTeamDialog);
-// Activas y Archivados: se desarrollan después
-['#teamActive', '#teamArchived'].forEach(sel => $(sel).addEventListener('click', () => toast('Próximamente', 'Esta sección todavía está en construcción.')));
+$('#teamActive').addEventListener('click', () => openTeamList('active'));
+$('#teamArchived').addEventListener('click', () => openTeamList('archived'));

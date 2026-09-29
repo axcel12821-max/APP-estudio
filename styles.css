@@ -159,6 +159,16 @@ button.team-box:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(
 button.team-box:active { transform: translateY(0); }
 button.team-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .team-title, .team-note { display: block; }
+/* Lista de tareas conjuntas (activas / archivadas) */
+.team-list-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.team-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: min(60vh, 520px); overflow-y: auto; }
+.team-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--c) 6%, var(--surface)); }
+.team-row strong { display: block; font-weight: 600; margin-bottom: 6px; overflow-wrap: anywhere; }
+.team-row-due { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.team-row-members { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.team-row-members .chip { overflow-wrap: anywhere; }
+.team-row-actions { display: flex; gap: 2px; flex: none; }
+.team-list .empty .btn { margin-top: 12px; }
 /* Participantes del formulario de tarea conjunta */
 .member-list { display: flex; flex-direction: column; gap: 8px; }
 .member-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
