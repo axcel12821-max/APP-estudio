@@ -141,6 +141,7 @@ function complete({ restored = false } = {}) {
     const msg = restored ? 'Se completó mientras la app estaba cerrada.' : 'Tomate un descanso.';
     toast('¡Pomodoro completado!', what ? `${what}. ${msg}` : msg, 'success');
     notify('¡Pomodoro completado!', `${what ? what + ' · ' : ''}Tomate un descanso.`, { onlyHidden: true, tag: 'pomodoro' });
+    addInbox('pomodoro', 'Pomodoro completado', what || msg);
   } else if (!restored) {
     toast('Fin del descanso', '¡A enfocarse!');
     notify('Fin del descanso', '¡A enfocarse!', { onlyHidden: true, tag: 'pomodoro' });

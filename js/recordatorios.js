@@ -16,6 +16,7 @@ function fireRecurring(r, late) {
   const body = (r.message || defaultReminderMessage(r.subjectId)) + (late ? ` (programado ${r.time})` : '');
   toast(title, body, 'reminder');
   notify(`Focusly · ${title}`, body, { tag: 'rem-' + r.id });
+  addInbox('reminder', title, body);
   beep([880, 660, 880]);
 }
 
@@ -27,6 +28,7 @@ function fireTaskReminder(t) {
   const body = `${t.title} — ${when}`;
   toast(title, body, 'reminder');
   notify(`Focusly · ${title}`, body, { tag: 'task-' + t.id });
+  addInbox('task', title, body);
   beep([880, 660, 880]);
 }
 

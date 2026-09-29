@@ -110,13 +110,7 @@ const HOUR_PX_MIN = 18, HOUR_PX_MAX = 96;
 function fitHourPx(hours) {
   const body = $('#calBody .sch-body');
   if (!body || !hours) return 48;
-  // Posiciones absolutas en la página: lo que hay arriba de la grilla y lo que queda debajo
-  // (borde de la tarjeta, márgenes, espacio para la barra inferior del teléfono)
-  const r = body.getBoundingClientRect();
-  const above = r.top + scrollY;
-  const below = document.documentElement.scrollHeight - (r.bottom + scrollY);
-  const avail = innerHeight - above - below - 1;
-  return Math.max(HOUR_PX_MIN, Math.min(HOUR_PX_MAX, Math.floor(avail / hours)));
+  return Math.max(HOUR_PX_MIN, Math.min(HOUR_PX_MAX, Math.floor(fillHeight(body) / hours)));
 }
 
 const prioDot = ev => ev.priority ? `<i class="prio-dot p-${ev.priority}" title="Prioridad ${PRIORITY[ev.priority]?.toLowerCase() || ''}"></i>` : '';

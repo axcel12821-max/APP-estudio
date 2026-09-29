@@ -20,7 +20,7 @@ const cloud = {
 };
 const SYNC_KEY = uid => `bruno-sync:${uid}`;
 const PUSH_DELAY = 1500;
-const COLLECTIONS = ['subjects', 'tasks', 'sessions', 'reminders', 'teamTasks'];
+const COLLECTIONS = ['subjects', 'tasks', 'sessions', 'reminders', 'teamTasks', 'inbox'];
 
 /** Lo que se sube: todo menos el temporizador en curso (es propio de cada dispositivo). */
 function remotePayload(s = state) {
@@ -187,6 +187,7 @@ function renderAccount() {
       <button type="button" class="btn btn-ghost btn-sm" id="logoutBtn">Cerrar sesión</button>
     </div>`;
   $('#accountBadge').textContent = cloud.localOnly || cloud.status === 'offline' ? 'Sin conexión' : '';
+  $('#accountBadge').title = $('#accountBadge').textContent;
 }
 
 /* ---------- Pantalla de ingreso ---------- */

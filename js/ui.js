@@ -25,14 +25,20 @@ mq.addEventListener('change', applyTheme);
 /* ============ Navegación ============ */
 // Secciones tomadas del HTML (cada <section class="view" id="view-…">): agregar una no requiere tocar esta lista
 const VIEWS = $$('.view').map(v => v.id.replace('view-', ''));
+// Dirección "#vista/parámetro" (p. ej. #tablero/abc123): el parámetro queda en routeArg
+let routeArg = '';
 function route() {
-  const view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'calendario'; // inicio: el día de hoy
+  const [name, arg = ''] = location.hash.slice(1).split('/');
+  const view = VIEWS.includes(name) ? name : 'calendario'; // inicio: el día de hoy
+  routeArg = decodeURIComponent(arg);
+  // Una subsección (data-parent) marca como activa a su sección en el menú
+  const navView = $('#view-' + view).dataset.parent || view;
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
-  $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
-  $('#moreBtn').classList.toggle('active', !['panel', 'calendario', 'tareas', 'pomodoro'].includes(view));
+  $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === navView));
+  $('#moreBtn').classList.toggle('active', !['panel', 'calendario', 'tareas', 'pomodoro'].includes(navView));
   document.body.classList.remove('nav-open');
-  $$('.more-grid a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
-  $('#topbarTitle').textContent = $(`.nav a[data-view="${view}"] span`)?.textContent || 'Focusly';
+  $$('.more-grid a').forEach(a => a.classList.toggle('active', a.dataset.view === navView));
+  $('#topbarTitle').textContent = $(`.nav a[data-view="${navView}"] span`)?.textContent || 'Focusly';
   renderers[view]?.();
   // Animación de entrada (barras que se llenan) solo al cambiar de sección
   const el = $('#view-' + view);

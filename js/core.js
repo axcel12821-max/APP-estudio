@@ -8,6 +8,22 @@
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+/**
+ * Alto disponible para que `el` llene la pantalla sin desplazar la página: lo que queda
+ * entre su borde superior y el final de la ventana, menos lo que la página tiene debajo
+ * (márgenes, barra inferior del teléfono). Se mide estirándolo un momento para que el
+ * espacio vacío de una página corta no se cuente como contenido.
+ */
+function fillHeight(el) {
+  const prev = el.style.height;
+  el.style.height = '100000px';
+  const r = el.getBoundingClientRect();
+  const below = document.documentElement.scrollHeight - (r.bottom + scrollY);
+  el.style.height = prev;
+  return innerHeight - (r.top + scrollY) - below - 1;
+}
+/** Tablero en blanco de una tarea conjunta: vista (desplazamiento y zoom) y sus elementos. */
+const newBoard = (createdAt = new Date().toISOString()) => ({ id: uid(), createdAt, updatedAt: null, view: { x: 0, y: 0, zoom: 1 }, items: [] });
 const esc = (s = '') => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
 const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
@@ -94,6 +110,7 @@ const defaults = {
   sessions: [],          // sesiones Pomodoro (completadas y parciales; ambas suman tiempo)
   reminders: [],         // recordatorios recurrentes
   teamTasks: [],         // tareas conjuntas (Equipos)
+  inbox: [],             // buzón: notificaciones e invitaciones
   goals: DEFAULT_GOALS,
   achieved: {},          // objetivos ya celebrados: { clave: true }
   pomo: { ...DEFAULT_POMO },
@@ -123,6 +140,8 @@ function migrate(s) {
   s.sessions = s.sessions || [];
   s.reminders = s.reminders || [];
   s.teamTasks = s.teamTasks || [];
+  s.teamTasks.forEach(t => { t.board = t.board || newBoard(t.createdAt); }); // cada tarea conjunta tiene su propio tablero
+  s.inbox = s.inbox || [];
   s.achieved = s.achieved || {};
 
   s.subjects.forEach(sub => {

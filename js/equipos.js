@@ -92,7 +92,7 @@ teamForm.addEventListener('submit', e => {
     id: uid(), name, date: f.date.value, color: teamColor,
     // Invitaciones pendientes: se confirman del lado del servidor solo para cuentas existentes
     members: emails.map(email => ({ email, status: 'invited' })),
-    status: 'active', createdAt: new Date().toISOString(),
+    status: 'active', createdAt: new Date().toISOString(), board: newBoard(),
   });
   save(); renderAll();
   toast('Tarea conjunta creada', emails.length ? `Se invitó a ${emails.length} participante${emails.length > 1 ? 's' : ''}.` : name, 'success');
@@ -122,7 +122,7 @@ function teamRowHTML(t) {
     ? `<button type="button" class="icon-plain" data-act="archive" aria-label="Archivar" title="Archivar">${ARCHIVE_ICON}</button>`
     : `<button type="button" class="icon-plain" data-act="restore" aria-label="Restaurar" title="Restaurar">${RESTORE_ICON}</button>
        <button type="button" class="icon-plain danger" data-act="delete" aria-label="Eliminar" title="Eliminar">${TRASH_ICON}</button>`;
-  return `<li class="team-row" data-id="${t.id}" style="--c:${t.color}">
+  return `<li class="team-row" data-id="${t.id}" style="--c:${t.color}" title="Abrir tablero">
     <div class="grow">
       <strong>${esc(t.name)}</strong>
       <div class="team-row-due">${teamDueHTML(t)}</div>
@@ -151,7 +151,12 @@ function openTeamList(mode) {
 
 $('#teamList').addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
-  if (!b) return;
+  if (!b) {
+    // Clic en la fila (fuera de los botones): abrir su tablero
+    const row = e.target.closest('.team-row');
+    if (row) openBoard(row.dataset.id);
+    return;
+  }
   if (b.dataset.act === 'create') { $('#teamListDialog').close(); openTeamDialog(); return; }
   const t = state.teamTasks.find(x => x.id === b.closest('[data-id]').dataset.id);
   if (!t) return;
