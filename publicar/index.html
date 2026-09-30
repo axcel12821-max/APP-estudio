@@ -567,34 +567,6 @@
           </div>
         </header>
         <div class="board-wrap" id="boardWrap">
-          <!-- Chat del tablero: burbuja abajo a la izquierda que abre un panel de comentarios -->
-          <div class="board-chat" id="boardChat">
-            <div class="board-chat-panel" id="boardChatPanel" role="dialog" aria-label="Chat del tablero" hidden>
-              <div class="board-chat-head">
-                <strong>Chat</strong>
-                <div class="board-chat-sort" id="boardChatSort" role="radiogroup" aria-label="Ordenar">
-                  <button type="button" data-sort="recent" aria-pressed="true">Recientes</button>
-                  <button type="button" data-sort="top" aria-pressed="false">Más votados</button>
-                </div>
-                <button type="button" class="icon-plain" id="boardChatClose" aria-label="Cerrar el chat" title="Cerrar"></button>
-              </div>
-              <div class="board-chat-list" id="boardChatList" aria-live="polite"></div>
-              <div class="chat-pending" id="boardChatPending" hidden></div>
-              <form class="board-chat-form" id="boardChatForm">
-                <span class="chat-me" id="boardChatMe"></span>
-                <button type="button" class="icon-plain chat-attach" id="boardChatAttach" aria-label="Adjuntar archivo" title="Adjuntar imagen, video, audio o PDF (hasta 10 MB)">
-                  <svg viewBox="0 0 24 24"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></svg>
-                </button>
-                <input type="file" id="boardChatFile" accept="image/*,video/*,audio/*,application/pdf" multiple hidden>
-                <textarea id="boardChatInput" rows="2" maxlength="2000" placeholder="Escribí un comentario…" title="Enter envía · Shift+Enter baja de línea" aria-label="Comentario"></textarea>
-                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-              </form>
-            </div>
-            <button type="button" class="board-chat-bubble" id="boardChatTab" aria-expanded="false" aria-controls="boardChatPanel" title="Chat del tablero">
-              <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.8 7L3 21l2-5.6A8 8 0 1 1 21 12Z"/></svg>
-              <span class="board-chat-count" id="boardChatCount"></span>
-            </button>
-          </div>
           <div class="board-canvas tool-pen" id="boardCanvas" tabindex="0" aria-label="Tablero">
             <div class="board-layer" id="boardLayer"><div class="board-frames" id="boardFrames"></div><svg class="board-strokes" id="boardStrokes" aria-hidden="true"></svg><div class="board-texts" id="boardTexts"></div><div class="board-selbox" id="boardSelBox" hidden></div></div>
             <div class="board-eraser" id="boardEraser" hidden></div><div class="board-marquee" id="boardMarquee" hidden></div>
@@ -639,12 +611,6 @@
             </div>
           </aside>
         </div>
-        <!-- Debajo del tablero: acciones y objetivos (con sus tareas a realizar) -->
-        <div class="board-actions" id="boardActions">
-          <button type="button" class="btn btn-primary btn-sm" id="addGoalBtn">+ Agregar objetivo</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="doneGoalsBtn"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Objetivos cumplidos<span class="done-goals-count" id="doneGoalsCount"></span></button>
-        </div>
-        <div class="bgoals" id="boardGoals"></div>
         <p class="empty" id="boardMissing" hidden>Este tablero no existe o fue eliminado. <a href="#equipos" class="link">Volver a Equipos</a></p>
       </section>
     </main>
@@ -775,31 +741,6 @@
         <button type="submit" class="btn btn-primary">Crear</button>
       </div>
     </form>
-  </dialog>
-
-  <!-- Objetivos cumplidos (archivados) de un tablero -->
-  <dialog id="doneGoalsDialog" class="wide">
-    <div class="dialog-body">
-      <div class="team-list-head">
-        <h2>Objetivos cumplidos</h2>
-        <button type="button" class="btn btn-ghost btn-sm" data-close>Cerrar</button>
-      </div>
-      <p class="muted small">Objetivos con todas sus tareas hechas. Abrí uno para verlo o devolverlo al tablero.</p>
-      <ul class="done-goals" id="doneGoalsList"></ul>
-    </div>
-  </dialog>
-
-  <!-- Aviso antes de abrir un enlace externo (chat del tablero) -->
-  <dialog id="linkDialog">
-    <div class="dialog-body">
-      <h2>Vas a salir de Focusly</h2>
-      <p class="muted small">Este enlace lleva a un sitio externo. Abrilo solo si confiás en quien lo compartió.</p>
-      <p class="link-dialog-url"><strong id="linkDialogHost"></strong><span id="linkDialogUrl"></span></p>
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-ghost" data-close>Cancelar</button>
-        <button type="button" class="btn btn-primary" id="linkDialogGo">Abrir enlace</button>
-      </div>
-    </div>
   </dialog>
 
   <!-- Buzón de notificaciones e invitaciones -->
@@ -961,7 +902,6 @@
   <script src="js/panel.js"></script>
   <script src="js/equipos.js"></script>
   <script src="js/tablero.js"></script>
-  <script src="js/chat.js"></script>
   <script src="js/cloud.js"></script>
   <script src="js/main.js"></script>
 </body>

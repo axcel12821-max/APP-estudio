@@ -76,7 +76,7 @@ function toast(title, body = '', kind = 'info') {
   el.className = `toast toast-${kind}`;
   el.setAttribute('role', 'status');
   el.innerHTML = `
-    <div class="toast-icon">${kind === 'reminder' ? ICONS.bell : kind === 'error' ? ICONS.x : ICONS.check}</div>
+    <div class="toast-icon">${kind === 'reminder' ? ICONS.bell : ICONS.check}</div>
     <div class="grow"><strong>${esc(title)}</strong>${body ? `<span>${esc(body)}</span>` : ''}</div>
     <button class="icon-plain" aria-label="Cerrar">${ICONS.x}</button>`;
   const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 250); };

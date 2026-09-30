@@ -15,22 +15,15 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
  * espacio vacío de una página corta no se cuente como contenido.
  */
 function fillHeight(el) {
-  // Si ya se está midiendo (una medición dentro de otra), no volver a estirarlo
-  if (el.dataset.measuring) return Math.max(0, innerHeight - el.getBoundingClientRect().top);
   const prev = el.style.height;
-  el.dataset.measuring = '1';
-  try {
-    el.style.height = '100000px';
-    const r = el.getBoundingClientRect();
-    const below = document.documentElement.scrollHeight - (r.bottom + scrollY);
-    return Math.min(innerHeight, innerHeight - (r.top + scrollY) - below - 1);
-  } finally {
-    el.style.height = prev; // nunca queda estirado
-    delete el.dataset.measuring;
-  }
+  el.style.height = '100000px';
+  const r = el.getBoundingClientRect();
+  const below = document.documentElement.scrollHeight - (r.bottom + scrollY);
+  el.style.height = prev;
+  return innerHeight - (r.top + scrollY) - below - 1;
 }
 /** Tablero en blanco de una tarea conjunta: vista (desplazamiento y zoom) y sus elementos. */
-const newBoard = (createdAt = new Date().toISOString()) => ({ id: uid(), createdAt, updatedAt: null, view: { x: 0, y: 0, zoom: 1 }, items: [], goals: [], chat: [] });
+const newBoard = (createdAt = new Date().toISOString()) => ({ id: uid(), createdAt, updatedAt: null, view: { x: 0, y: 0, zoom: 1 }, items: [] });
 const esc = (s = '') => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
 const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };

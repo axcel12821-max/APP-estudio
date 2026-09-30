@@ -614,17 +614,10 @@ $('#boardFrames').addEventListener('keydown', e => {
 });
 
 /* ---------- Pantalla ---------- */
-/**
- * El tablero (con la barra de acciones debajo) ocupa el alto que queda en pantalla.
- * Los objetivos no cuentan: quedan más abajo, se llega desplazando la página.
- */
+/** El tablero ocupa el alto que queda en pantalla, sin desplazar la página. */
 function fitBoardCanvas() {
   const wrap = $('#boardWrap');
-  const goals = $('#boardGoals');
-  const shown = goals.style.display;
-  goals.style.display = 'none';
   wrap.style.height = `${Math.max(320, fillHeight(wrap))}px`;
-  goals.style.display = shown;
 }
 
 function renderBoard() {
@@ -635,7 +628,7 @@ function renderBoard() {
   boardTask = boardById(routeArg) || null;
   if (boardTask !== prev) { boardUndo = []; selected.clear(); }
   const found = !!boardTask;
-  $$('#view-tablero .board-head, #boardWrap, #boardActions, #boardGoals').forEach(el => { el.hidden = !found; });
+  $$('#view-tablero .board-head, #boardWrap').forEach(el => { el.hidden = !found; });
   $('#boardMissing').hidden = found;
   if (!found) return;
   const t = boardTask;
@@ -646,8 +639,6 @@ function renderBoard() {
   setBoardTool(boardTool);
   applyBoardView();
   renderItems();
-  // No redibujar los objetivos mientras se escribe en ellos (se perdería el cursor)
-  if (boardTask !== prev || !$('#boardGoals').contains(document.activeElement)) renderGoals();
   fitBoardCanvas();
 }
 renderers.tablero = renderBoard;
@@ -942,225 +933,6 @@ $('#boardClear').addEventListener('click', () => {
   boardTask.board.items = [];
   selected.clear();
   renderItems();
-  persistBoard(0);
-});
-
-/* ============ Objetivos (debajo del tablero) ============
-   board.goals = [{ id, title, description, tasks: [{ id, text, done }], completedAt? }].
-   - Barra de progreso: porcentaje de tareas hechas.
-   - Al marcar una tarea pasa a la sección "Hechas" (al final de la tarjeta).
-   - Cuando se marca la última, el objetivo se archiva (completedAt) y pasa a
-     "Objetivos cumplidos", desde donde se puede ver o devolver al tablero.
-   Se guardan con el tablero; escribir no redibuja (para no perder el foco). */
-const X_ICON = () => ICONS.x;
-const GOAL_ARCHIVE_DELAY = 900; // se ve el 100% un momento antes de archivarlo
-const allGoals = () => (boardTask.board.goals = boardTask.board.goals || []);
-const boardGoals = () => allGoals().filter(g => !g.completedAt);
-const doneGoals = () => allGoals().filter(g => g.completedAt).sort((a, b) => b.completedAt.localeCompare(a.completedAt));
-
-function goalTaskHTML(t) {
-  return `<li class="bgoal-task ${t.done ? 'done' : ''}" data-task="${t.id}">
-    <input type="checkbox" ${t.done ? 'checked' : ''} aria-label="${t.done ? 'Marcar como pendiente' : 'Marcar como hecha'}">
-    <input type="text" class="bgoal-task-text" maxlength="200" placeholder="Tarea a realizar" value="${esc(t.text)}">
-    <button type="button" class="icon-plain danger" data-act="del-task" aria-label="Quitar tarea" title="Quitar tarea">${X_ICON()}</button>
-  </li>`;
-}
-
-const goalPct = g => g.tasks.length ? Math.round(g.tasks.filter(t => t.done).length / g.tasks.length * 100) : 0;
-
-function goalHTML(g) {
-  const pending = g.tasks.filter(t => !t.done), done = g.tasks.filter(t => t.done);
-  return `<section class="card bgoal" data-goal="${g.id}">
-    <div class="bgoal-head">
-      <label class="field grow"><span>Título</span>
-        <input type="text" class="bgoal-title" maxlength="100" placeholder="Ej: Terminar la introducción" value="${esc(g.title)}"></label>
-      <button type="button" class="icon-plain danger" data-act="del-goal" aria-label="Quitar objetivo" title="Quitar objetivo">${X_ICON()}</button>
-    </div>
-    <label class="field"><span>Descripción</span>
-      <textarea class="bgoal-desc" rows="2" maxlength="1000" placeholder="Qué hay que lograr y cómo">${esc(g.description)}</textarea></label>
-    <div class="bgoal-bar" role="progressbar" aria-label="Progreso del objetivo" aria-valuemin="0" aria-valuemax="100">
-      <div class="bgoal-bar-track"><span></span></div><span class="bgoal-pct"></span>
-    </div>
-    <ul class="bgoal-tasks bgoal-pending">${pending.map(goalTaskHTML).join('')}</ul>
-    <div class="bgoal-done">
-      <div class="bgoal-done-title"></div>
-      <ul class="bgoal-tasks bgoal-done-list">${done.map(goalTaskHTML).join('')}</ul>
-    </div>
-    <button type="button" class="btn btn-ghost btn-sm bgoal-add" data-act="add-task">+ Agregar tareas a realizar</button>
-  </section>`;
-}
-
-/** Actualiza barra, porcentaje y sección "Hechas" de una tarjeta sin redibujar sus campos. */
-function syncGoalCard(g) {
-  const card = $(`#boardGoals [data-goal="${g.id}"]`);
-  if (!card) return;
-  const pct = goalPct(g);
-  const bar = card.querySelector('.bgoal-bar');
-  bar.setAttribute('aria-valuenow', pct);
-  bar.classList.toggle('full', pct === 100);
-  bar.querySelector('.bgoal-bar-track span').style.width = `${pct}%`;
-  bar.querySelector('.bgoal-pct').textContent = `${pct}%`;
-  // Cada tarea en su lista (pendientes arriba, hechas abajo), en el orden en que se crearon
-  const pendingUl = card.querySelector('.bgoal-pending'), doneUl = card.querySelector('.bgoal-done-list');
-  g.tasks.forEach(t => {
-    const li = card.querySelector(`[data-task="${t.id}"]`);
-    if (!li) return;
-    li.classList.toggle('done', t.done);
-    const cb = li.querySelector('input[type=checkbox]');
-    cb.checked = t.done;
-    cb.setAttribute('aria-label', t.done ? 'Marcar como pendiente' : 'Marcar como hecha');
-    (t.done ? doneUl : pendingUl).appendChild(li);
-  });
-  const nDone = g.tasks.filter(t => t.done).length;
-  card.querySelector('.bgoal-done').hidden = !nDone;
-  card.querySelector('.bgoal-done-title').textContent = `Hechas (${nDone})`;
-}
-
-function renderGoals() {
-  $('#boardGoals').innerHTML = boardGoals().map(goalHTML).join('');
-  boardGoals().forEach(syncGoalCard);
-  renderDoneGoalsButton();
-}
-
-function renderDoneGoalsButton() {
-  const n = boardTask ? doneGoals().length : 0;
-  $('#doneGoalsCount').textContent = n || '';
-}
-
-const goalOf = el => allGoals().find(g => g.id === el.closest('[data-goal]')?.dataset.goal);
-const taskOf = (g, el) => g?.tasks.find(t => t.id === el.closest('[data-task]')?.dataset.task);
-
-/** Agrega una tarea (casilla + texto) al final de las pendientes y pone el cursor en ella. */
-function addGoalTask(g) {
-  const t = { id: uid(), text: '', done: false };
-  g.tasks.push(t);
-  const card = $(`#boardGoals [data-goal="${g.id}"]`);
-  card.querySelector('.bgoal-pending').insertAdjacentHTML('beforeend', goalTaskHTML(t));
-  syncGoalCard(g);
-  card.querySelector(`[data-task="${t.id}"] .bgoal-task-text`).focus();
-  persistBoard();
-}
-
-/** Con todas las tareas hechas: se muestra el 100% un momento y el objetivo pasa a "cumplidos". */
-function archiveIfComplete(g) {
-  if (!g.tasks.length || g.tasks.some(t => !t.done)) return;
-  const card = $(`#boardGoals [data-goal="${g.id}"]`);
-  card?.classList.add('completing');
-  setTimeout(() => {
-    // Si mientras tanto se desmarcó algo, sigue en el tablero
-    if (g.completedAt || !g.tasks.length || g.tasks.some(t => !t.done) || !allGoals().includes(g)) { card?.classList.remove('completing'); return; }
-    g.completedAt = new Date().toISOString();
-    card?.remove();
-    renderDoneGoalsButton();
-    persistBoard(0);
-    toast('¡Objetivo cumplido!', `${g.title || 'Sin título'} pasó a "Objetivos cumplidos".`, 'success');
-  }, GOAL_ARCHIVE_DELAY);
-}
-
-$('#addGoalBtn').addEventListener('click', () => {
-  if (!boardTask) return;
-  const g = { id: uid(), title: '', description: '', tasks: [] };
-  allGoals().push(g);
-  $('#boardGoals').insertAdjacentHTML('beforeend', goalHTML(g));
-  syncGoalCard(g);
-  const card = $(`#boardGoals [data-goal="${g.id}"]`);
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  card.querySelector('.bgoal-title').focus({ preventScroll: true });
-  persistBoard(0);
-});
-
-$('#boardGoals').addEventListener('input', e => {
-  const g = goalOf(e.target);
-  if (!g) return;
-  if (e.target.classList.contains('bgoal-title')) g.title = e.target.value;
-  else if (e.target.classList.contains('bgoal-desc')) g.description = e.target.value;
-  else if (e.target.classList.contains('bgoal-task-text')) { const t = taskOf(g, e.target); if (t) t.text = e.target.value; }
-  persistBoard();
-});
-
-$('#boardGoals').addEventListener('change', e => {
-  if (e.target.type !== 'checkbox') return;
-  const g = goalOf(e.target), t = taskOf(g, e.target);
-  if (!t) return;
-  t.done = e.target.checked;
-  syncGoalCard(g);
-  persistBoard(0);
-  if (t.done) archiveIfComplete(g); // solo al marcar (un objetivo restaurado al 100% no se vuelve a archivar solo)
-});
-
-$('#boardGoals').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]');
-  const g = b && goalOf(b);
-  if (!g) return;
-  if (b.dataset.act === 'add-task') addGoalTask(g);
-  else if (b.dataset.act === 'del-task') {
-    const t = taskOf(g, b);
-    g.tasks.splice(g.tasks.indexOf(t), 1);
-    b.closest('.bgoal-task').remove();
-    syncGoalCard(g);
-    persistBoard(0);
-  } else if (b.dataset.act === 'del-goal') {
-    const filled = g.title || g.description || g.tasks.length;
-    if (filled && !confirm(`¿Quitar el objetivo${g.title ? ` "${g.title}"` : ''} y sus tareas?`)) return;
-    allGoals().splice(allGoals().indexOf(g), 1);
-    b.closest('[data-goal]').remove();
-    persistBoard(0);
-  }
-});
-
-// Enter en una tarea agrega la siguiente
-$('#boardGoals').addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || !e.target.classList.contains('bgoal-task-text')) return;
-  e.preventDefault();
-  addGoalTask(goalOf(e.target));
-});
-
-/* ---- Objetivos cumplidos: ventana con los archivados (ver, devolver al tablero o eliminar) ---- */
-function doneGoalHTML(g) {
-  const when = new Date(g.completedAt).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
-  return `<li class="done-goal" data-goal="${g.id}">
-    <details>
-      <summary>
-        <span class="done-goal-check">${ICONS.check}</span>
-        <span class="grow"><strong>${esc(g.title || 'Sin título')}</strong><span class="muted small">Cumplido el ${when} · ${g.tasks.length} tarea${g.tasks.length === 1 ? '' : 's'}</span></span>
-      </summary>
-      <div class="done-goal-body">
-        ${g.description ? `<p class="done-goal-desc">${esc(g.description)}</p>` : ''}
-        <ul class="done-goal-tasks">${g.tasks.map(t => `<li class="${t.done ? 'done' : ''}"><input type="checkbox" ${t.done ? 'checked' : ''} disabled aria-hidden="true"><span>${esc(t.text || 'Sin texto')}</span></li>`).join('')}</ul>
-        <div class="done-goal-actions">
-          <button type="button" class="btn btn-ghost btn-sm danger-text" data-act="delete">Eliminar</button>
-          <button type="button" class="btn btn-primary btn-sm" data-act="restore">Devolver al tablero</button>
-        </div>
-      </div>
-    </details>
-  </li>`;
-}
-
-function renderDoneGoals() {
-  const list = doneGoals();
-  $('#doneGoalsList').innerHTML = list.length ? list.map(doneGoalHTML).join('')
-    : '<li class="empty">Todavía no hay objetivos cumplidos. Cuando marques todas las tareas de un objetivo, va a aparecer acá.</li>';
-}
-
-$('#doneGoalsBtn').addEventListener('click', () => {
-  if (!boardTask) return;
-  renderDoneGoals();
-  $('#doneGoalsDialog').showModal();
-});
-
-$('#doneGoalsList').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]');
-  const g = b && goalOf(b);
-  if (!g) return;
-  if (b.dataset.act === 'restore') {
-    delete g.completedAt;
-    toast('Objetivo devuelto al tablero', g.title || 'Sin título');
-  } else if (b.dataset.act === 'delete') {
-    if (!confirm(`¿Eliminar el objetivo${g.title ? ` "${g.title}"` : ''} para siempre?`)) return;
-    allGoals().splice(allGoals().indexOf(g), 1);
-  }
-  renderGoals();
-  renderDoneGoals();
   persistBoard(0);
 });
 
